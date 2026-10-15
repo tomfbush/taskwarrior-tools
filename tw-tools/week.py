@@ -51,7 +51,7 @@ def main():
     now = datetime.now().date()
 
     result = subprocess.run(
-        ["task", "rc.verbose=nothing", "rc.json.array=on", "rc.context=none",
+        ["task", "rc.verbose=nothing", "rc.json.array=on", "rc.context=",
          "status:pending", "export"],
         capture_output=True, text=True
     )
