@@ -10,6 +10,7 @@ A collection of Python/shell utilities that extend Taskwarrior on macOS. These a
 
 - **`tw-tools/today.py`** — Daily agenda view (`task today`). Same structure as week.py but scoped to today only: overdue tasks + tasks due/scheduled today, sorted by time.
 - **`tw-tools/week.py`** — Weekly agenda view (`task week`). Exports all pending tasks via `task export`, filters to those due/scheduled this work week or overdue, groups by day, sorts by time within each day.
+- **`tw-tools/kanban.py`** — Terminal kanban (`task kanban`). Groups all pending tasks by top-level project in side-by-side columns, auto-fitted to terminal width. Shows subproject as a dim `.tag` suffix, overdue tasks in red, priority as coloured dots (● H/M, · L).
 - **`tw-tools/urgency.py`** — Project urgency ranking (`task urgency`). Aggregates Taskwarrior's built-in urgency scores by project. Two modes: weighted (`mean × ln(n+1)`) and simple mean (`--mean`).
 - **`notify/taskwarrior-notify.sh`** — macOS notification script. Checks for tasks due within 5 minutes or 30 minutes overdue, pops an `osascript` dialog. Runs via cron every 5 minutes.
 
@@ -20,6 +21,7 @@ All tools shell out to `task export` and parse the JSON. Taskwarrior date format
 ```bash
 python3 tw-tools/today.py
 python3 tw-tools/week.py
+python3 tw-tools/kanban.py
 python3 tw-tools/urgency.py [--mean]
 bash notify/taskwarrior-notify.sh
 ```
@@ -35,6 +37,7 @@ task() {
     case "$1" in
         today) python3 ~/taskwarrior-claude-cleanup/tw-tools/today.py ;;
         week) python3 ~/taskwarrior-claude-cleanup/tw-tools/week.py ;;
+        kanban) python3 ~/taskwarrior-claude-cleanup/tw-tools/kanban.py ;;
         urgency) shift; python3 ~/taskwarrior-claude-cleanup/tw-tools/urgency.py "$@" ;;
         *) command task "$@" ;;
     esac
