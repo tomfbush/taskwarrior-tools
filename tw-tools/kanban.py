@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""Terminal kanban: pending tasks in side-by-side columns grouped by top-level project."""
+"""Terminal kanban: pending tasks in side-by-side columns grouped by top-level project.
+
+Usage:
+  task kanban           group by top-level project
+  task kanban --sub     group by full subproject (ATSPACE.PPC, ATSPACE.SEO, …)
+  task kanban ATSPACE   only show columns under one top-level project
+"""
 
 import json
 import re
 import shutil
 import subprocess
+import sys
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -48,7 +55,7 @@ def format_time(dt):
     return ""
 
 
-def build_block(project_name, tasks, col_width, now):
+def build_block(project_name, tasks, col_width, now, show_sub_tag=True):
     """Return a list of padded lines for one project column."""
     lines = []
 
@@ -73,22 +80,20 @@ def build_block(project_name, tasks, col_width, now):
         id_str = f"{DIM}{task_id}{RESET}"
         id_chars = len(str(task_id)) if task_id else 1
 
-        # Subproject suffix (e.g. ".PPC" shown as dim tag)
+        # Subproject suffix (e.g. ".PPC" shown as dim tag) — only in top-level mode
         top = project_name or ""
         subproject_tag = ""
-        if sub and sub != top and sub.startswith(top + "."):
+        sub_chars = 0
+        if show_sub_tag and sub and sub != top and sub.startswith(top + "."):
             tag = sub[len(top) + 1:].split(".")[0]
             subproject_tag = f"{DIM}.{tag}{RESET}"
             sub_chars = len(tag) + 1
-        else:
-            sub_chars = 0
 
         # Time prefix
         time_prefix = f"{BOLD}{time_str}{RESET} " if time_str else ""
         time_chars = len(time_str) + 1 if time_str else 0
 
-        # Available chars for description:
-        # dot(1) + space(1) + time_prefix + desc + space(1) + subproject + space(1) + id
+        # Available chars for description
         overhead = 1 + 1 + time_chars + 1 + sub_chars + (1 if sub_chars else 0) + 1 + id_chars
         desc_max = max(8, col_width - overhead)
         if len(desc) > desc_max:
@@ -112,6 +117,10 @@ def build_block(project_name, tasks, col_width, now):
 
 
 def main():
+    args = sys.argv[1:]
+    use_sub = "--sub" in args
+    filter_top = next((a for a in args if not a.startswith("-")), None)
+
     term_width = shutil.get_terminal_size((120, 40)).columns
     now = datetime.now().date()
 
@@ -122,29 +131,39 @@ def main():
     )
     tasks = json.loads(result.stdout)
 
-    # Group by top-level project
+    # Determine grouping key
+    def group_key(t):
+        project = t.get("project", "")
+        if use_sub:
+            return project  # full project path as column
+        return project.split(".")[0] if project else ""
+
+    # Filter to a single top-level project if requested
+    if filter_top:
+        tasks = [t for t in tasks
+                 if t.get("project", "").split(".")[0].lower() == filter_top.lower()]
+
     by_project = defaultdict(list)
     for t in tasks:
-        project = t.get("project", "")
-        top = project.split(".")[0] if project else ""
-        by_project[top].append(t)
+        by_project[group_key(t)].append(t)
 
-    # Sort within each project: H first, then by urgency desc
+    # Sort within each project
     for proj_tasks in by_project.values():
         proj_tasks.sort(key=lambda t: (
             PRI_ORDER.get(t.get("priority", ""), 3),
             -t.get("urgency", 0),
         ))
 
-    # Sort projects: named projects alphabetically, (none) last
+    # Sort projects alphabetically, (none) last
     projects = sorted(by_project.keys(), key=lambda p: ("\xff" if not p else p.lower()))
 
     # Calculate column layout
     num_cols = max(1, min(len(projects), (term_width + GAP) // (MIN_COL + GAP)))
     col_width = (term_width - GAP * (num_cols - 1)) // num_cols
 
-    # Build and print rows of blocks
-    blocks = [build_block(p, by_project[p], col_width, now) for p in projects]
+    # In --sub mode, no subproject tag (the column name IS the subproject)
+    blocks = [build_block(p, by_project[p], col_width, now, show_sub_tag=not use_sub)
+              for p in projects]
 
     print()
     for row_start in range(0, len(blocks), num_cols):
