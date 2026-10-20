@@ -26,8 +26,8 @@ RESET = "\033[0m"
 PRI_DOT = {"H": f"{RED}H{RESET}", "M": f"{YELLOW}M{RESET}", "L": f"{GREEN}L{RESET}"}
 PRI_ORDER = {"H": 0, "M": 1, "L": 2, "": 3}
 
-GAP = 2   # spaces between columns
-MIN_COL = 22
+GAP = 2          # spaces between columns
+PREFERRED_COL = 30  # target column width; fewer wider cols on narrow terminals
 
 
 def vlen(s):
@@ -188,7 +188,7 @@ def main():
     projects = sorted(by_project.keys(), key=lambda p: ("\xff" if not p else p.lower()))
 
     # Calculate column layout
-    num_cols = max(1, min(len(projects), (term_width + GAP) // (MIN_COL + GAP)))
+    num_cols = max(1, min(len(projects), (term_width + GAP) // (PREFERRED_COL + GAP)))
     col_width = (term_width - GAP * (num_cols - 1)) // num_cols
 
     # In --sub mode, no subproject tag (the column name IS the subproject)
