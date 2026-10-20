@@ -23,7 +23,7 @@ DIM = "\033[2m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
-PRI_DOT = {"H": f"{RED}●{RESET}", "M": f"{YELLOW}●{RESET}", "L": f"{GREEN}·{RESET}"}
+PRI_DOT = {"H": f"{RED}H{RESET}", "M": f"{YELLOW}M{RESET}", "L": f"{GREEN}L{RESET}"}
 PRI_ORDER = {"H": 0, "M": 1, "L": 2, "": 3}
 
 GAP = 2   # spaces between columns
