@@ -35,9 +35,36 @@ def vlen(s):
     return len(re.sub(r'\033\[[0-9;]*m', '', s))
 
 
-def vpad(s, width):
-    """Pad string to visible width."""
-    return s + ' ' * max(0, width - vlen(s))
+def vtrim(s, width):
+    """Hard-trim string to at most `width` visible characters, preserving ANSI codes."""
+    result = []
+    count = 0
+    i = 0
+    while i < len(s):
+        if s[i] == '\033':
+            j = i + 1
+            while j < len(s) and s[j] != 'm':
+                j += 1
+            result.append(s[i:j + 1])
+            i = j + 1
+        else:
+            if count >= width:
+                break
+            result.append(s[i])
+            count += 1
+            i += 1
+    result.append(RESET)
+    return ''.join(result)
+
+
+def vfit(s, width):
+    """Pad or trim string to exactly `width` visible characters."""
+    current = vlen(s)
+    if current < width:
+        return s + ' ' * (width - current)
+    if current > width:
+        return vtrim(s, width)
+    return s
 
 
 def parse_tw_datetime(s):
@@ -66,7 +93,7 @@ def build_block(project_name, tasks, col_width, now, show_sub_tag=True):
     if len(name) > max_name:
         name = name[:max_name - 1] + "…"
     header = f"{BOLD}{CYAN}{name}{RESET}{DIM}{count_visible}{RESET}"
-    lines.append(vpad(header, col_width))
+    lines.append(vfit(header, col_width))
     lines.append(DIM + "─" * col_width + RESET)
 
     for t in tasks:
@@ -114,7 +141,7 @@ def build_block(project_name, tasks, col_width, now, show_sub_tag=True):
             line += f" {subproject_tag}"
         line += f" {id_str}"
 
-        lines.append(vpad(line, col_width))
+        lines.append(vfit(line, col_width))
 
     return lines
 
