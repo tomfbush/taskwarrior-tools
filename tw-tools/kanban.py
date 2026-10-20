@@ -59,10 +59,13 @@ def build_block(project_name, tasks, col_width, now, show_sub_tag=True):
     """Return a list of padded lines for one project column."""
     lines = []
 
-    # Header
+    # Header — truncate name if it would overflow col_width
     name = project_name or "(none)"
-    count = f"{DIM} {len(tasks)}{RESET}"
-    header = f"{BOLD}{CYAN}{name}{RESET}{count}"
+    count_visible = f" {len(tasks)}"
+    max_name = col_width - len(count_visible)
+    if len(name) > max_name:
+        name = name[:max_name - 1] + "…"
+    header = f"{BOLD}{CYAN}{name}{RESET}{DIM}{count_visible}{RESET}"
     lines.append(vpad(header, col_width))
     lines.append(DIM + "─" * col_width + RESET)
 
