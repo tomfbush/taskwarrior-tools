@@ -1,0 +1,19 @@
+#!/bin/bash
+TASK_OUTPUT=$(/opt/homebrew/bin/task export 2>/dev/null)
+
+NOW=$(date -u +%Y%m%dT%H%M%SZ)
+TASK=$(echo "$TASK_OUTPUT" | /usr/bin/jq -r --arg now "$NOW" '[.[] | select(.status == "pending" and .due != null and (.wait == null or .wait <= $now))] | sort_by(.due) | .[0]' 2>/dev/null)
+
+if [[ -z "$TASK" || "$TASK" == "null" ]]; then
+    echo "Nothing due"
+else
+    ID=$(echo "$TASK" | /usr/bin/jq -r '.id')
+    PROJECT=$(echo "$TASK" | /usr/bin/jq -r '.project')
+    DUE=$(echo "$TASK" | /usr/bin/jq -r '.due')
+    DESC=$(echo "$TASK" | /usr/bin/jq -r '.description')
+    
+    DUE_EPOCH=$(date -j -u -f "%Y%m%dT%H%M%SZ" "$DUE" +%s 2>/dev/null)
+    DUE_READABLE=$(date -r $DUE_EPOCH "+%H:%M" 2>/dev/null)
+    
+    echo "$ID $PROJECT $DUE_READABLE $DESC"
+fi
